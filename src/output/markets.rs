@@ -1,8 +1,8 @@
 use serde_json::Value;
 
 use super::{
-    OutputMode, fmt_int, get_i64, get_str, left, print_rows, right, standard_table,
-    status_cell, truncate,
+    fmt_int, get_i64, get_str, left, print_rows, right, standard_table, status_cell, truncate,
+    OutputMode,
 };
 
 const MAX_QUESTION_WIDTH: usize = 52;
@@ -17,7 +17,8 @@ pub fn render_markets_table(
     }
 
     if compact {
-        let mut table = standard_table(&["Question", "Price", "Vol"]);
+        let mut table = standard_table(&["Question", "Contract", "Price (Yes)", "Vol", "Evt Mkts"]);
+        let mut prev_question: Option<String> = None;
         for market in markets {
             let title = get_str(market, "title");
             let question = if title == "-" {
@@ -25,16 +26,30 @@ pub fn render_markets_table(
             } else {
                 title
             };
+            let question = clean_question(question);
+            let show_question = match &prev_question {
+                Some(prev) if prev == question => "",
+                _ => question,
+            };
+            prev_question = Some(question.to_string());
+
             let yes_price = fmt_percent(
                 get_i64(market, "yes_ask")
                     .or_else(|| get_i64(market, "yes_bid"))
                     .or_else(|| get_i64(market, "last_price")),
             );
+            let contract = contract_label(market);
+            let vol = fmt_int(
+                get_i64(market, "open_volume").or_else(|| get_i64(market, "volume")),
+            );
+            let evt_mkts = fmt_int(get_i64(market, "event_market_count"));
 
             table.add_row(vec![
-                left(truncate(clean_question(question), MAX_QUESTION_WIDTH)),
+                left(truncate(show_question, MAX_QUESTION_WIDTH)),
+                left(truncate(&contract, 24)),
                 right(yes_price),
-                right(fmt_int(get_i64(market, "volume"))),
+                right(vol),
+                right(evt_mkts),
             ]);
         }
         println!("{table}");
@@ -53,7 +68,11 @@ pub fn render_markets_table(
     let mut prev_question: Option<String> = None;
     for m in markets {
         let title = get_str(m, "title");
-        let question = if title == "-" { get_str(m, "ticker") } else { title };
+        let question = if title == "-" {
+            get_str(m, "ticker")
+        } else {
+            title
+        };
         let question = clean_question(question);
         let show_question = match &prev_question {
             Some(prev) if prev == question => "",
@@ -102,7 +121,11 @@ pub fn render_markets_top_table(mode: OutputMode, markets: &[Value]) -> anyhow::
     let mut prev_question: Option<String> = None;
     for m in markets {
         let title = get_str(m, "title");
-        let question = if title == "-" { get_str(m, "ticker") } else { title };
+        let question = if title == "-" {
+            get_str(m, "ticker")
+        } else {
+            title
+        };
         let question = clean_question(question);
         let show_question = match &prev_question {
             Some(prev) if prev == question => "",

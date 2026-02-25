@@ -31,7 +31,7 @@ cargo build --release
 
 - `kal markets list` - list markets with optional status/event filters (`--status`, `--active`, `--event`, `--limit`)
 - `kal markets get <TICKER>` - get a single market
-- `kal markets search <QUERY>` - search markets by ticker/title
+- `kal markets search <QUERY>` - search markets by ticker/title (`--days`, `--limit`, `--compact`)
 - `kal markets top` - top upcoming markets by open interest and total volume (`--days`, `--min-open-interest`, `--min-total-volume`, `--active`, `--universe`)
 - `kal markets orderbook <TICKER>` - fetch orderbook snapshot (`--depth`)
 
