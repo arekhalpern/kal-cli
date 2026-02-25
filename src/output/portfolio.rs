@@ -16,6 +16,9 @@ pub fn render_balance_table(mode: OutputMode, data: &Value) -> anyhow::Result<()
 
     let mut table = standard_table(&["Field", "Value"]);
     for (key, value) in obj {
+        if !should_show_balance_field(key) {
+            continue;
+        }
         table.add_row(vec![left(key), right(balance_cell_value(key, value))]);
     }
     println!("{table}");
@@ -72,6 +75,10 @@ fn balance_cell_value(key: &str, value: &Value) -> String {
     scalar_to_string(value)
 }
 
+fn should_show_balance_field(key: &str) -> bool {
+    !matches!(key, "updated_ts" | "update_ts")
+}
+
 fn fmt_dollars(value: &Value) -> String {
     let Some(cents) = value_to_cents(value) else {
         return scalar_to_string(value);
@@ -108,7 +115,7 @@ fn scalar_to_string(value: &Value) -> String {
 mod tests {
     use serde_json::json;
 
-    use super::balance_cell_value;
+    use super::{balance_cell_value, should_show_balance_field};
 
     #[test]
     fn formats_balance_in_dollars() {
@@ -119,5 +126,12 @@ mod tests {
     #[test]
     fn leaves_non_balance_fields_unchanged() {
         assert_eq!(balance_cell_value("updated_ts", &json!(1771987869)), "1771987869");
+    }
+
+    #[test]
+    fn hides_balance_timestamp_fields() {
+        assert!(!should_show_balance_field("updated_ts"));
+        assert!(!should_show_balance_field("update_ts"));
+        assert!(should_show_balance_field("balance"));
     }
 }
