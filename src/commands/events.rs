@@ -1,3 +1,4 @@
+use std::fmt;
 use std::collections::BTreeMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -6,7 +7,8 @@ use serde_json::{Map, Value};
 
 use crate::{
     client::KalshiClient,
-    output::{get_i64, print_value, render_events_table, render_events_top_table, OutputMode},
+    output::{extract_array, get_i64, print_value, render_events_table, render_events_top_table, OutputMode},
+    query::QueryParams,
     AppContext,
 };
 
@@ -15,6 +17,17 @@ enum EventStatus {
     Open,
     Closed,
     Settled,
+}
+
+impl fmt::Display for EventStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let value = match self {
+            Self::Open => "open",
+            Self::Closed => "closed",
+            Self::Settled => "settled",
+        };
+        f.write_str(value)
+    }
 }
 
 #[derive(Debug, Clone, Args)]
@@ -67,34 +80,24 @@ pub async fn run(ctx: &AppContext, cmd: EventsCmd) -> anyhow::Result<()> {
         } => {
             // Table mode needs market counts; fetch nested markets automatically.
             let include_markets = with_markets || matches!(ctx.output_mode, OutputMode::Table);
-            let mut q = BTreeMap::new();
-            q.insert("limit".to_string(), "100".to_string());
-            if let Some(ref s) = status {
-                q.insert("status".to_string(), format_status(&s).to_string());
-            }
-            if let Some(s) = series_ticker {
-                q.insert("series_ticker".to_string(), s);
-            }
-            if include_markets {
-                q.insert("with_nested_markets".to_string(), "true".to_string());
-            }
+            let status_text = status.as_ref().map(|s| s.to_string());
+            let q = QueryParams::new()
+                .limit(100)
+                .optional("status", status_text.as_deref())
+                .optional("series_ticker", series_ticker)
+                .optional("with_nested_markets", include_markets.then_some("true"))
+                .build_always();
 
             let data = client.get_public("/events", Some(q)).await?;
-            let events = data
-                .get("events")
-                .and_then(Value::as_array)
-                .cloned()
-                .unwrap_or_default();
-            let status_fallback = status.as_ref().map(format_status);
-            render_events_table(ctx.output_mode, &events, status_fallback)
+            let events = extract_array(&data, "events");
+            render_events_table(ctx.output_mode, &events, status_text.as_deref())
         }
         EventsSubcmd::Get { ticker, with_markets } => {
-            let mut q = BTreeMap::new();
-            if with_markets {
-                q.insert("with_nested_markets".to_string(), "true".to_string());
-            }
+            let q = QueryParams::new()
+                .optional("with_nested_markets", with_markets.then_some("true"))
+                .build();
             let data = client
-                .get_public(&format!("/events/{ticker}"), if q.is_empty() { None } else { Some(q) })
+                .get_public(&format!("/events/{ticker}"), q)
                 .await?;
             print_value(ctx.output_mode, &data)
         }
@@ -108,15 +111,11 @@ pub async fn run(ctx: &AppContext, cmd: EventsCmd) -> anyhow::Result<()> {
             universe,
         } => {
             let target_universe = universe.clamp(1, 10_000);
-            let mut q = BTreeMap::new();
-            q.insert(
-                "status".to_string(),
-                if active { "open" } else { "closed" }.to_string(),
-            );
-            q.insert("with_nested_markets".to_string(), "true".to_string());
-            if !include_mve {
-                q.insert("mve_filter".to_string(), "exclude".to_string());
-            }
+            let q = QueryParams::new()
+                .insert("status", if active { "open" } else { "closed" })
+                .insert("with_nested_markets", "true")
+                .optional("mve_filter", (!include_mve).then_some("exclude"))
+                .build_always();
 
             let events = fetch_events_universe(&client, q, target_universe).await?;
             let mut rows = aggregate_events(events, days, min_open_interest, min_total_volume);
@@ -146,11 +145,7 @@ async fn fetch_events_universe(
         }
 
         let data = client.get_public("/events", Some(q)).await?;
-        let page = data
-            .get("events")
-            .and_then(Value::as_array)
-            .cloned()
-            .unwrap_or_default();
+        let page = extract_array(&data, "events");
 
         if page.is_empty() {
             break;
@@ -189,11 +184,7 @@ fn aggregate_events(
 
     let mut rows = Vec::with_capacity(events.len());
     for event in events {
-        let markets = event
-            .get("markets")
-            .and_then(Value::as_array)
-            .cloned()
-            .unwrap_or_default();
+        let markets = extract_array(&event, "markets");
         if markets.is_empty() {
             continue;
         }
@@ -264,12 +255,4 @@ fn market_close_ts(market: &Value) -> Option<i64> {
         }
     }
     None
-}
-
-fn format_status(status: &EventStatus) -> &'static str {
-    match status {
-        EventStatus::Open => "open",
-        EventStatus::Closed => "closed",
-        EventStatus::Settled => "settled",
-    }
 }

@@ -74,7 +74,13 @@ pub async fn run(ctx: &AppContext, cmd: WatchCmd) -> anyhow::Result<()> {
         let msg = msg?;
         if msg.is_text() {
             let text = msg.into_text()?;
-            let parsed: Value = serde_json::from_str(&text).unwrap_or_else(|_| json!({"raw": text}));
+            let parsed: Value = match serde_json::from_str(&text) {
+                Ok(value) => value,
+                Err(err) => {
+                    eprintln!("warning: failed to parse websocket message as JSON: {err}");
+                    json!({"raw": text})
+                }
+            };
             match ctx.output_mode {
                 OutputMode::Json => print_ndjson(&parsed),
                 OutputMode::Table => println!("{}", serde_json::to_string_pretty(&parsed)?),

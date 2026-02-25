@@ -3,6 +3,10 @@ use reqwest::{Method, StatusCode};
 use serde_json::Value;
 use std::{collections::BTreeMap, time::Duration};
 
+const HTTP_TIMEOUT_SECS: u64 = 15;
+const MAX_RETRIES: u32 = 3;
+const MAX_BACKOFF_MS: u64 = 30_000;
+
 #[derive(Clone)]
 pub struct KalshiClient {
     http: reqwest::Client,
@@ -12,7 +16,7 @@ pub struct KalshiClient {
 impl KalshiClient {
     pub fn new(runtime: RuntimeConfig) -> anyhow::Result<Self> {
         let http = reqwest::Client::builder()
-            .timeout(Duration::from_secs(15))
+            .timeout(Duration::from_secs(HTTP_TIMEOUT_SECS))
             .build()?;
 
         Ok(Self { http, runtime })
@@ -54,8 +58,7 @@ impl KalshiClient {
         let base_url = self.runtime.rest_base_url();
         let url = format!("{}{}", base_url, path);
 
-        let mut attempt = 0;
-        let max_retries = 3;
+        let mut attempt = 0_u32;
 
         loop {
             let mut req = self.http.request(method.clone(), &url);
@@ -100,7 +103,7 @@ impl KalshiClient {
             }
 
             if matches!(response.status(), StatusCode::TOO_MANY_REQUESTS | StatusCode::SERVICE_UNAVAILABLE)
-                && attempt < max_retries
+                && attempt < MAX_RETRIES
             {
                 attempt += 1;
                 let retry_after_ms = response
@@ -109,14 +112,14 @@ impl KalshiClient {
                     .and_then(|v| v.to_str().ok())
                     .and_then(|s| s.parse::<u64>().ok())
                     .map(|secs| secs.saturating_mul(1000));
-                let exponential_ms = (1000_u64 * (1_u64 << (attempt - 1))).min(30_000);
+                let exponential_ms = (1000_u64 * (1_u64 << (attempt - 1))).min(MAX_BACKOFF_MS);
                 let jitter_seed = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .map(|d| d.subsec_nanos() as u64)
                     .unwrap_or(500_000_000);
                 let jitter_factor = 0.5 + (jitter_seed % 1000) as f64 / 1000.0; // 0.5..1.499
                 let jitter_ms = (exponential_ms as f64 * jitter_factor).round() as u64;
-                let backoff_ms = retry_after_ms.unwrap_or(jitter_ms.min(30_000));
+                let backoff_ms = retry_after_ms.unwrap_or(jitter_ms.min(MAX_BACKOFF_MS));
                 tokio::time::sleep(Duration::from_millis(backoff_ms)).await;
                 continue;
             }

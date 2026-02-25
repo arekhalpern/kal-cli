@@ -1,3 +1,4 @@
+use std::fmt;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -7,7 +8,8 @@ use serde_json::Value;
 
 use crate::{
     client::KalshiClient,
-    output::{get_i64, print_value, render_markets_table, render_markets_top_table},
+    output::{extract_array, get_i64, print_value, render_markets_table, render_markets_top_table},
+    query::QueryParams,
     AppContext,
 };
 
@@ -17,6 +19,18 @@ enum MarketStatus {
     Closed,
     Settled,
     Unopened,
+}
+
+impl fmt::Display for MarketStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let value = match self {
+            Self::Open => "open",
+            Self::Closed => "closed",
+            Self::Settled => "settled",
+            Self::Unopened => "unopened",
+        };
+        f.write_str(value)
+    }
 }
 
 #[derive(Debug, Clone, Args)]
@@ -36,7 +50,7 @@ enum MarketsSubcmd {
         event_ticker: Option<String>,
         #[arg(long, default_value_t = 25)]
         limit: usize,
-        #[arg(long, default_value_t = false)]
+        #[arg(long, default_value_t = true)]
         compact: bool,
     },
     Get {
@@ -44,7 +58,7 @@ enum MarketsSubcmd {
     },
     Search {
         query: String,
-        #[arg(long, default_value_t = false)]
+        #[arg(long, default_value_t = true)]
         compact: bool,
     },
     Top {
@@ -81,27 +95,19 @@ pub async fn run(ctx: &AppContext, cmd: MarketsCmd) -> anyhow::Result<()> {
             limit,
             compact,
         } => {
-            let mut q = BTreeMap::new();
-            q.insert("limit".to_string(), limit.to_string());
-            if let Some(is_active) = active {
-                if is_active {
-                    q.insert("status".to_string(), "open".to_string());
-                } else {
-                    q.insert("status".to_string(), "closed".to_string());
-                }
-            } else if let Some(s) = status {
-                q.insert("status".to_string(), format_status(&s).to_string());
-            }
-            if let Some(e) = event_ticker {
-                q.insert("event_ticker".to_string(), e);
-            }
+            let status_filter = if let Some(is_active) = active {
+                Some(if is_active { "open" } else { "closed" }.to_string())
+            } else {
+                status.map(|s| s.to_string())
+            };
+            let q = QueryParams::new()
+                .limit(limit)
+                .optional("status", status_filter)
+                .optional("event_ticker", event_ticker)
+                .build_always();
 
             let data = client.get_public("/markets", Some(q)).await?;
-            let mut markets = data
-                .get("markets")
-                .and_then(Value::as_array)
-                .cloned()
-                .unwrap_or_default();
+            let mut markets = extract_array(&data, "markets");
             sort_markets(&mut markets);
             enrich_event_market_counts(&client, &mut markets).await?;
 
@@ -115,15 +121,10 @@ pub async fn run(ctx: &AppContext, cmd: MarketsCmd) -> anyhow::Result<()> {
             query,
             compact,
         } => {
-            let mut q = BTreeMap::new();
-            q.insert("limit".to_string(), "200".to_string());
+            let q = QueryParams::new().limit(200).build_always();
 
             let data = client.get_public("/markets", Some(q)).await?;
-            let mut markets = data
-                .get("markets")
-                .and_then(Value::as_array)
-                .cloned()
-                .unwrap_or_default();
+            let mut markets = extract_array(&data, "markets");
 
             let q_lower = query.to_lowercase();
             markets.retain(|m| {
@@ -154,15 +155,11 @@ pub async fn run(ctx: &AppContext, cmd: MarketsCmd) -> anyhow::Result<()> {
             universe,
         } => {
             let target_universe = universe.clamp(1, 10_000);
-            let mut q = BTreeMap::new();
-            q.insert(
-                "status".to_string(),
-                if active { "open" } else { "closed" }.to_string(),
-            );
-            q.insert("max_close_ts".to_string(), upcoming_max_close_ts(days).to_string());
-            if !include_mve {
-                q.insert("mve_filter".to_string(), "exclude".to_string());
-            }
+            let q = QueryParams::new()
+                .insert("status", if active { "open" } else { "closed" })
+                .insert("max_close_ts", upcoming_max_close_ts(days))
+                .optional("mve_filter", (!include_mve).then_some("exclude"))
+                .build_always();
 
             let mut markets = fetch_markets_universe(&client, q, target_universe).await?;
             markets.retain(|m| {
@@ -177,12 +174,9 @@ pub async fn run(ctx: &AppContext, cmd: MarketsCmd) -> anyhow::Result<()> {
             render_markets_top_table(ctx.output_mode, &markets)
         }
         MarketsSubcmd::Orderbook { ticker, depth } => {
-            let mut q = BTreeMap::new();
-            if let Some(d) = depth {
-                q.insert("depth".to_string(), d.to_string());
-            }
+            let q = QueryParams::new().optional("depth", depth).build();
             let data = client
-                .get_public(&format!("/markets/{ticker}/orderbook"), if q.is_empty() { None } else { Some(q) })
+                .get_public(&format!("/markets/{ticker}/orderbook"), q)
                 .await?;
             print_value(ctx.output_mode, &data)
         }
@@ -239,11 +233,7 @@ async fn fetch_markets_universe(
         }
 
         let data = client.get_public("/markets", Some(q)).await?;
-        let page = data
-            .get("markets")
-            .and_then(Value::as_array)
-            .cloned()
-            .unwrap_or_default();
+        let page = extract_array(&data, "markets");
 
         if page.is_empty() {
             break;
@@ -308,13 +298,4 @@ async fn enrich_event_market_counts(
     }
 
     Ok(())
-}
-
-fn format_status(status: &MarketStatus) -> &'static str {
-    match status {
-        MarketStatus::Open => "open",
-        MarketStatus::Closed => "closed",
-        MarketStatus::Settled => "settled",
-        MarketStatus::Unopened => "unopened",
-    }
 }

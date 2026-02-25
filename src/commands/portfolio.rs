@@ -1,12 +1,12 @@
-use std::{collections::BTreeMap, time::{SystemTime, UNIX_EPOCH}};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use clap::{Args, Subcommand};
-use serde_json::Value;
 
 use crate::{
     client::KalshiClient,
     config::ensure_auth,
-    output::{print_rows, print_value, render_positions_table},
+    output::{extract_array, print_rows, print_value, render_positions_table},
+    query::QueryParams,
     AppContext,
 };
 
@@ -28,7 +28,7 @@ enum PortfolioSubcmd {
         settled: bool,
         #[arg(long, default_value_t = false)]
         unsettled: bool,
-        #[arg(long, default_value_t = false)]
+        #[arg(long, default_value_t = true)]
         compact: bool,
     },
     Fills {
@@ -61,42 +61,33 @@ pub async fn run(ctx: &AppContext, cmd: PortfolioCmd) -> anyhow::Result<()> {
             unsettled,
             compact,
         } => {
-            let mut q = BTreeMap::new();
-            q.insert("limit".to_string(), "200".to_string());
-            if let Some(t) = ticker {
-                q.insert("ticker".to_string(), t);
-            }
-            if let Some(e) = event_ticker {
-                q.insert("event_ticker".to_string(), e);
-            }
-            if settled {
-                q.insert("settlement_status".to_string(), "settled".to_string());
+            let settlement_status = if settled {
+                Some("settled")
             } else if unsettled {
-                q.insert("settlement_status".to_string(), "unsettled".to_string());
-            }
+                Some("unsettled")
+            } else {
+                None
+            };
+            let q = QueryParams::new()
+                .limit(200)
+                .optional("ticker", ticker)
+                .optional("event_ticker", event_ticker)
+                .optional("settlement_status", settlement_status)
+                .build();
 
-            let data = client.get_auth("/portfolio/positions", Some(q)).await?;
-            let rows = data
-                .get("market_positions")
-                .and_then(Value::as_array)
-                .cloned()
-                .unwrap_or_default();
+            let data = client.get_auth("/portfolio/positions", q).await?;
+            let rows = extract_array(&data, "market_positions");
             render_positions_table(ctx.output_mode, &rows, compact)
         }
         PortfolioSubcmd::Fills { ticker, days } => {
-            let mut q = BTreeMap::new();
-            q.insert("limit".to_string(), "200".to_string());
-            q.insert("min_ts".to_string(), ts_days_ago(days).to_string());
-            if let Some(t) = ticker {
-                q.insert("ticker".to_string(), t);
-            }
+            let q = QueryParams::new()
+                .limit(200)
+                .insert("min_ts", ts_days_ago(days))
+                .optional("ticker", ticker)
+                .build();
 
-            let data = client.get_auth("/portfolio/fills", Some(q)).await?;
-            let rows = data
-                .get("fills")
-                .and_then(Value::as_array)
-                .cloned()
-                .unwrap_or_default();
+            let data = client.get_auth("/portfolio/fills", q).await?;
+            let rows = extract_array(&data, "fills");
             print_rows(
                 ctx.output_mode,
                 &rows,
@@ -104,19 +95,14 @@ pub async fn run(ctx: &AppContext, cmd: PortfolioCmd) -> anyhow::Result<()> {
             )
         }
         PortfolioSubcmd::Settlements { ticker, days } => {
-            let mut q = BTreeMap::new();
-            q.insert("limit".to_string(), "200".to_string());
-            q.insert("min_ts".to_string(), ts_days_ago(days).to_string());
-            if let Some(t) = ticker {
-                q.insert("ticker".to_string(), t);
-            }
+            let q = QueryParams::new()
+                .limit(200)
+                .insert("min_ts", ts_days_ago(days))
+                .optional("ticker", ticker)
+                .build();
 
-            let data = client.get_auth("/portfolio/settlements", Some(q)).await?;
-            let rows = data
-                .get("settlements")
-                .and_then(Value::as_array)
-                .cloned()
-                .unwrap_or_default();
+            let data = client.get_auth("/portfolio/settlements", q).await?;
+            let rows = extract_array(&data, "settlements");
             print_rows(
                 ctx.output_mode,
                 &rows,

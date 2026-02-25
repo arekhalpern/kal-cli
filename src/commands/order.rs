@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::fmt;
 
 use clap::{Args, Subcommand, ValueEnum};
 use serde_json::json;
@@ -6,7 +6,8 @@ use serde_json::json;
 use crate::{
     client::KalshiClient,
     config::ensure_auth,
-    output::{print_value, render_order_table},
+    output::{extract_array, print_value, render_order_table},
+    query::QueryParams,
     AppContext,
 };
 
@@ -40,6 +41,58 @@ enum OrderStatus {
     Resting,
     Executed,
     Canceled,
+}
+
+impl fmt::Display for Side {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let value = match self {
+            Self::Yes => "yes",
+            Self::No => "no",
+        };
+        f.write_str(value)
+    }
+}
+
+impl fmt::Display for Action {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let value = match self {
+            Self::Buy => "buy",
+            Self::Sell => "sell",
+        };
+        f.write_str(value)
+    }
+}
+
+impl fmt::Display for OrderType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let value = match self {
+            Self::Limit => "limit",
+            Self::Market => "market",
+        };
+        f.write_str(value)
+    }
+}
+
+impl fmt::Display for OrderStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let value = match self {
+            Self::Resting => "resting",
+            Self::Executed => "executed",
+            Self::Canceled => "canceled",
+        };
+        f.write_str(value)
+    }
+}
+
+impl fmt::Display for Tif {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let value = match self {
+            Self::Gtc => "good_till_canceled",
+            Self::Fok => "fill_or_kill",
+            Self::Ioc => "immediate_or_cancel",
+        };
+        f.write_str(value)
+    }
 }
 
 #[derive(Debug, Clone, Args)]
@@ -84,7 +137,7 @@ enum OrderSubcmd {
         ticker: Option<String>,
         #[arg(long)]
         status: Option<OrderStatus>,
-        #[arg(long, default_value_t = false)]
+        #[arg(long, default_value_t = true)]
         compact: bool,
     },
     Get {
@@ -108,11 +161,11 @@ pub async fn run(ctx: &AppContext, cmd: OrderCmd) -> anyhow::Result<()> {
         } => {
             let mut body = json!({
                 "ticker": ticker,
-                "side": side_to_str(&side),
-                "action": action_to_str(&action),
+                "side": side.to_string(),
+                "action": action.to_string(),
                 "count": count,
-                "type": order_type_to_str(&order_type),
-                "time_in_force": tif_to_api(&tif),
+                "type": order_type.to_string(),
+                "time_in_force": tif.to_string(),
             });
 
             if matches!(side, Side::Yes) {
@@ -131,11 +184,10 @@ pub async fn run(ctx: &AppContext, cmd: OrderCmd) -> anyhow::Result<()> {
             print_value(ctx.output_mode, &data)
         }
         OrderSubcmd::CancelAll { ticker } => {
-            let mut q = BTreeMap::new();
-            q.insert("status".to_string(), "resting".to_string());
-            if let Some(t) = ticker {
-                q.insert("ticker".to_string(), t);
-            }
+            let q = QueryParams::new()
+                .insert("status", "resting")
+                .optional("ticker", ticker)
+                .build_always();
 
             let existing = client.get_auth("/portfolio/orders", Some(q)).await?;
             let ids: Vec<String> = existing
@@ -179,21 +231,14 @@ pub async fn run(ctx: &AppContext, cmd: OrderCmd) -> anyhow::Result<()> {
             status,
             compact,
         } => {
-            let mut q = BTreeMap::new();
-            q.insert("limit".to_string(), "200".to_string());
-            if let Some(t) = ticker {
-                q.insert("ticker".to_string(), t);
-            }
-            if let Some(s) = status {
-                q.insert("status".to_string(), status_to_str(&s).to_string());
-            }
+            let q = QueryParams::new()
+                .limit(200)
+                .optional("ticker", ticker)
+                .optional("status", status.map(|s| s.to_string()))
+                .build();
 
-            let data = client.get_auth("/portfolio/orders", Some(q)).await?;
-            let rows = data
-                .get("orders")
-                .and_then(|v| v.as_array())
-                .cloned()
-                .unwrap_or_default();
+            let data = client.get_auth("/portfolio/orders", q).await?;
+            let rows = extract_array(&data, "orders");
             render_order_table(ctx.output_mode, &rows, compact)
         }
         OrderSubcmd::Get { order_id } => {
@@ -202,42 +247,5 @@ pub async fn run(ctx: &AppContext, cmd: OrderCmd) -> anyhow::Result<()> {
                 .await?;
             print_value(ctx.output_mode, &data)
         }
-    }
-}
-
-fn side_to_str(v: &Side) -> &'static str {
-    match v {
-        Side::Yes => "yes",
-        Side::No => "no",
-    }
-}
-
-fn action_to_str(v: &Action) -> &'static str {
-    match v {
-        Action::Buy => "buy",
-        Action::Sell => "sell",
-    }
-}
-
-fn order_type_to_str(v: &OrderType) -> &'static str {
-    match v {
-        OrderType::Limit => "limit",
-        OrderType::Market => "market",
-    }
-}
-
-fn status_to_str(v: &OrderStatus) -> &'static str {
-    match v {
-        OrderStatus::Resting => "resting",
-        OrderStatus::Executed => "executed",
-        OrderStatus::Canceled => "canceled",
-    }
-}
-
-fn tif_to_api(v: &Tif) -> &'static str {
-    match v {
-        Tif::Gtc => "good_till_canceled",
-        Tif::Fok => "fill_or_kill",
-        Tif::Ioc => "immediate_or_cancel",
     }
 }

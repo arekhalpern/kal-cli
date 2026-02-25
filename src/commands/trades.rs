@@ -1,9 +1,11 @@
-use std::collections::BTreeMap;
-
 use clap::{Args, Subcommand};
-use serde_json::Value;
 
-use crate::{client::KalshiClient, output::print_rows, AppContext};
+use crate::{
+    client::KalshiClient,
+    output::{extract_array, print_rows},
+    query::QueryParams,
+    AppContext,
+};
 
 #[derive(Debug, Clone, Args)]
 pub struct TradesCmd {
@@ -26,17 +28,12 @@ pub async fn run(ctx: &AppContext, cmd: TradesCmd) -> anyhow::Result<()> {
 
     match cmd.command {
         TradesSubcmd::List { ticker, limit } => {
-            let mut q = BTreeMap::new();
-            q.insert("limit".to_string(), limit.to_string());
-            if let Some(t) = ticker {
-                q.insert("ticker".to_string(), t);
-            }
-            let data = client.get_public("/markets/trades", Some(q)).await?;
-            let rows = data
-                .get("trades")
-                .and_then(Value::as_array)
-                .cloned()
-                .unwrap_or_default();
+            let q = QueryParams::new()
+                .limit(limit)
+                .optional("ticker", ticker)
+                .build();
+            let data = client.get_public("/markets/trades", q).await?;
+            let rows = extract_array(&data, "trades");
             print_rows(
                 ctx.output_mode,
                 &rows,

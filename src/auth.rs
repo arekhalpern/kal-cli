@@ -10,6 +10,7 @@ pub fn parse_private_key(key: &str) -> String {
     let mut out = String::from("-----BEGIN PRIVATE KEY-----\n");
 
     for chunk in clean.as_bytes().chunks(64) {
+        // Safe default: `clean` is base64-only ASCII after whitespace removal.
         out.push_str(std::str::from_utf8(chunk).unwrap_or_default());
         out.push('\n');
     }
