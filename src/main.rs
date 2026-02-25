@@ -3,19 +3,14 @@ mod client;
 mod commands;
 mod config;
 mod output;
+mod query;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use commands::{
     config_cmd, events, exchange, markets, order, portfolio, shell, trades, watch,
 };
-use config::{resolve_runtime_config, RuntimeConfig};
+use config::{resolve_runtime_config, Environment, RuntimeConfig};
 use output::OutputMode;
-
-#[derive(Debug, Clone, Copy, ValueEnum)]
-enum Environment {
-    Prod,
-    Demo,
-}
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum OutputFormat {
@@ -67,15 +62,6 @@ pub struct AppContext {
     pub output_mode: OutputMode,
 }
 
-impl From<Environment> for config::Environment {
-    fn from(value: Environment) -> Self {
-        match value {
-            Environment::Prod => config::Environment::Prod,
-            Environment::Demo => config::Environment::Demo,
-        }
-    }
-}
-
 impl From<OutputFormat> for OutputMode {
     fn from(value: OutputFormat) -> Self {
         match value {
@@ -106,7 +92,7 @@ pub(crate) async fn dispatch(cli: Cli) -> anyhow::Result<()> {
     }
 
     let runtime = resolve_runtime_config(
-        cli.global.environment.map(Into::into),
+        cli.global.environment,
         cli.global.api_key,
         cli.global.api_secret,
     )?;
