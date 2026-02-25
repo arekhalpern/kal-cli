@@ -5,7 +5,7 @@ use clap::{Args, Subcommand};
 use crate::{
     client::KalshiClient,
     config::ensure_auth,
-    output::{extract_array, print_rows, print_value, render_positions_table},
+    output::{extract_array, print_rows, render_balance_table, render_positions_table},
     query::QueryParams,
     AppContext,
 };
@@ -52,7 +52,7 @@ pub async fn run(ctx: &AppContext, cmd: PortfolioCmd) -> anyhow::Result<()> {
     match cmd.command {
         PortfolioSubcmd::Balance => {
             let data = client.get_auth("/portfolio/balance", None).await?;
-            print_value(ctx.output_mode, &data)
+            render_balance_table(ctx.output_mode, &data)
         }
         PortfolioSubcmd::Positions {
             ticker,

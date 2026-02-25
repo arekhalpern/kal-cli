@@ -9,7 +9,7 @@ pub use events::{render_events_table, render_events_top_table};
 pub use format::{extract_array, fmt_cents, fmt_int, get_i64, get_str, pnl_cell, status_cell};
 pub use markets::{render_markets_table, render_markets_top_table};
 pub use orders::render_order_table;
-pub use portfolio::render_positions_table;
+pub use portfolio::{render_balance_table, render_positions_table};
 pub use table::{left, right, standard_table, truncate};
 
 use comfy_table::{presets::UTF8_FULL, Cell, Table};
