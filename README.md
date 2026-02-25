@@ -38,11 +38,47 @@ cp -R skills/* ~/.claude/skills/
 cp -R skills/* ~/.openclaw/skills/
 ```
 
+If your agent supports a custom skills path, you can point it directly at this repo instead of copying:
+
+- Skills root: `~/projects/kalshi-cli/skills`
+- Example strategy: set your agent's `skills_dir` / `skillsPath` setting to that path
+- Alternative: symlink your agent skills folder to this repo so updates stay in sync
+
+```bash
+# Example symlink approach (replace target for your agent)
+ln -sfn ~/projects/kalshi-cli/skills ~/.codex/skills/kalshi-cli
+```
+
 ## Install
 
 ```bash
 cargo build --release
 ./target/release/kal --help
+```
+
+### Install From Source (git clone)
+
+```bash
+git clone git@github.com:arekhalpern/kal-cli.git
+cd kal-cli
+cargo install --path . --bin kal --locked --force
+kal --version
+```
+
+If `kal` is not found in your current shell:
+
+```bash
+source ~/.cargo/env
+hash -r
+kal --version
+```
+
+Optional system-wide install:
+
+```bash
+cargo build --release
+sudo install -m 0755 target/release/kal /usr/local/bin/kal
+kal --version
 ```
 
 ## Global flags
