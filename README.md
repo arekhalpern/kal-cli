@@ -149,6 +149,55 @@ kal --version
 
 ## Configuration
 
+### Environment selection
+
+Set `KALSHI_ENV` (or use `--env`) to choose API environment:
+
+- `prod` (default): `https://api.elections.kalshi.com/trade-api/v2`
+- `demo`: `https://demo-api.kalshi.co/trade-api/v2`
+
+Kalshi’s demo and production environments use separate accounts/credentials.
+
+### Get API credentials (from Kalshi)
+
+Per Kalshi docs, for authenticated requests:
+
+1. Log in to your Kalshi account (demo or prod)
+2. Go to **Account & security -> API Keys**
+3. Click **Create Key**
+4. Save both values:
+   - API Key ID
+   - Private key (`.key` / PEM)
+
+Important: the private key cannot be retrieved again after creation. Store it securely.
+
+### Use credentials with `kal`
+
+You can configure credentials via `kal config setup`, CLI flags, or environment variables.
+
+Environment variable example:
+
+```bash
+export KALSHI_ENV=prod
+export KALSHI_API_KEY='your_api_key_id'
+export KALSHI_API_SECRET='/absolute/path/to/kalshi-private-key.pem'
+```
+
+Then test:
+
+```bash
+kal exchange status
+kal portfolio balance
+```
+
+Note: this CLI does not auto-load `.env` by itself. To load a local `.env` file in bash:
+
+```bash
+set -a
+source .env
+set +a
+```
+
 Config path:
 
 - Linux/macOS: `~/.config/kalshi-cli/config.json`
@@ -164,6 +213,12 @@ Stored format:
 ```
 
 Config file permissions are set to owner-only on Unix (`0600`).
+
+Kalshi documentation:
+
+- Quick Start (Authenticated Requests): https://docs.kalshi.com/getting_started/quick_start_authenticated_requests
+- Demo environment: https://docs.kalshi.com/getting_started/demo_env
+- Quick Start (Market Data / production base URL): https://docs.kalshi.com/getting_started/quick_start_market_data
 
 ## Examples
 
