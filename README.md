@@ -11,6 +11,33 @@ Rust CLI for Kalshi's REST and WebSocket APIs with RSA-PSS auth.
 - WebSocket streaming with NDJSON in JSON mode
 - Interactive shell (`kal shell`)
 
+## Agent Skills
+
+Reusable agent skills live in `skills/` (one skill per command group). These are designed to be copied into any coding-agent skills directory.
+
+- `skills/kal-markets/`
+- `skills/kal-events/`
+- `skills/kal-order/`
+- `skills/kal-portfolio/`
+- `skills/kal-trades/`
+- `skills/kal-exchange/`
+- `skills/kal-watch/`
+- `skills/kal-config/`
+- `skills/kal-shell/`
+
+Install in your agent of choice:
+
+```bash
+# Codex
+cp -R skills/* ~/.codex/skills/
+
+# Claude Code
+cp -R skills/* ~/.claude/skills/
+
+# OpenClaw (example path)
+cp -R skills/* ~/.openclaw/skills/
+```
+
 ## Install
 
 ```bash
