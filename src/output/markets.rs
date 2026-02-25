@@ -5,13 +5,40 @@ use super::{
     status_cell, truncate,
 };
 
+const MAX_QUESTION_WIDTH: usize = 52;
+
 pub fn render_markets_table(
     mode: OutputMode,
     markets: &[Value],
-    _compact: bool,
+    compact: bool,
 ) -> anyhow::Result<()> {
     if mode == OutputMode::Json {
         return print_rows(mode, markets, &[]);
+    }
+
+    if compact {
+        let mut table = standard_table(&["Question", "Price", "Vol"]);
+        for market in markets {
+            let title = get_str(market, "title");
+            let question = if title == "-" {
+                get_str(market, "ticker")
+            } else {
+                title
+            };
+            let yes_price = fmt_percent(
+                get_i64(market, "yes_ask")
+                    .or_else(|| get_i64(market, "yes_bid"))
+                    .or_else(|| get_i64(market, "last_price")),
+            );
+
+            table.add_row(vec![
+                left(truncate(clean_question(question), MAX_QUESTION_WIDTH)),
+                right(yes_price),
+                right(fmt_int(get_i64(market, "volume"))),
+            ]);
+        }
+        println!("{table}");
+        return Ok(());
     }
 
     let mut table = standard_table(&[
@@ -45,7 +72,7 @@ pub fn render_markets_table(
         let contract = contract_label(m);
 
         table.add_row(vec![
-            left(truncate(show_question, 40)),
+            left(truncate(show_question, MAX_QUESTION_WIDTH)),
             left(truncate(&contract, 24)),
             right(yes_price),
             right(vol),
@@ -94,7 +121,7 @@ pub fn render_markets_top_table(mode: OutputMode, markets: &[Value]) -> anyhow::
         let contract = contract_label(m);
 
         table.add_row(vec![
-            left(truncate(show_question, 40)),
+            left(truncate(show_question, MAX_QUESTION_WIDTH)),
             left(truncate(&contract, 24)),
             right(yes_price),
             right(total_vol),

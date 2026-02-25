@@ -5,7 +5,7 @@ mod orders;
 mod portfolio;
 mod table;
 
-pub use format::{fmt_cents, fmt_int, get_i64, get_str, pnl_cell, status_cell};
+pub use format::{extract_array, fmt_cents, fmt_int, get_i64, get_str, pnl_cell, status_cell};
 pub use events::{render_events_table, render_events_top_table};
 pub use markets::{render_markets_table, render_markets_top_table};
 pub use orders::render_order_table;

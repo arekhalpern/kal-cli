@@ -5,6 +5,8 @@ use super::{
     status_cell, truncate,
 };
 
+const ORDER_ID_WIDTH: usize = 14;
+
 pub fn render_order_table(
     mode: OutputMode,
     rows: &[Value],
@@ -18,7 +20,7 @@ pub fn render_order_table(
         let mut table = standard_table(&["Order ID", "Ticker", "Side", "Price", "Count", "Status"]);
         for row in rows {
             table.add_row(vec![
-                left(truncate(get_str(row, "order_id"), 14)),
+                left(truncate(get_str(row, "order_id"), ORDER_ID_WIDTH)),
                 left(truncate(get_str(row, "ticker"), 26)),
                 left(get_str(row, "side")),
                 right(order_price(row)),
@@ -35,7 +37,7 @@ pub fn render_order_table(
     ]);
     for row in rows {
         table.add_row(vec![
-            left(truncate(get_str(row, "order_id"), 14)),
+            left(truncate(get_str(row, "order_id"), ORDER_ID_WIDTH)),
             left(truncate(get_str(row, "ticker"), 30)),
             left(get_str(row, "side")),
             left(get_str(row, "action")),

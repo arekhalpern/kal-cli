@@ -53,6 +53,10 @@ pub fn get_str<'a>(row: &'a Value, key: &str) -> &'a str {
     row.get(key).and_then(Value::as_str).unwrap_or("-")
 }
 
+pub fn extract_array(data: &Value, key: &str) -> Vec<Value> {
+    data.get(key).and_then(Value::as_array).cloned().unwrap_or_default()
+}
+
 fn with_grouping(value: i64) -> String {
     let negative = value < 0;
     let digits = value.abs().to_string();
