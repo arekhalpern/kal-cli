@@ -27,15 +27,62 @@ cargo build --release
 
 ## Commands
 
-- `kal markets list|get|search|orderbook`
-- `kal events list|get`
-- `kal order create|cancel|cancel-all|amend|list|get`
-- `kal portfolio balance|positions|fills|settlements`
-- `kal trades list`
-- `kal exchange status|schedule|announcements`
-- `kal watch ticker|orderbook|trades`
-- `kal config setup|show|path|reset`
-- `kal shell`
+### `kal markets`
+
+- `kal markets list` - list markets with optional status/event filters (`--status`, `--active`, `--event`, `--limit`)
+- `kal markets get <TICKER>` - get a single market
+- `kal markets search <QUERY>` - search markets by ticker/title
+- `kal markets top` - top upcoming markets by open interest and total volume (`--days`, `--min-open-interest`, `--min-total-volume`, `--active`, `--universe`)
+- `kal markets orderbook <TICKER>` - fetch orderbook snapshot (`--depth`)
+
+### `kal events`
+
+- `kal events list` - list events (`--status`, `--series`, `--with-markets`)
+- `kal events get <TICKER>` - get one event (`--with-markets`)
+- `kal events top` - top upcoming events by aggregated open interest and total volume (`--days`, `--min-open-interest`, `--min-total-volume`, `--active`, `--universe`)
+
+### `kal order` (auth required)
+
+- `kal order create <TICKER>` - place order (`--side`, `--action`, `--count`, `--price`, `--type`, `--tif`)
+- `kal order cancel <ORDER_ID>` - cancel one order
+- `kal order cancel-all` - cancel all resting orders (`--ticker` optional scope)
+- `kal order amend <ORDER_ID>` - amend order (`--price`, `--count`)
+- `kal order list` - list account orders (`--ticker`, `--status`)
+- `kal order get <ORDER_ID>` - fetch one order
+
+### `kal portfolio` (auth required)
+
+- `kal portfolio balance` - account balance summary
+- `kal portfolio positions` - list positions (`--ticker`, `--event`, `--settled`, `--unsettled`)
+- `kal portfolio fills` - recent fills (`--ticker`, `--days`)
+- `kal portfolio settlements` - recent settlements (`--ticker`, `--days`)
+
+### `kal trades`
+
+- `kal trades list` - public market trades (`--ticker`, `--limit`)
+
+### `kal exchange`
+
+- `kal exchange status` - current exchange status
+- `kal exchange schedule` - exchange trading schedule
+- `kal exchange announcements` - exchange announcements
+
+### `kal watch` (auth required, WebSocket)
+
+- `kal watch ticker <TICKER>` - stream ticker updates (`--tickers` comma-separated for multi-market)
+- `kal watch orderbook <TICKER>` - stream orderbook deltas
+- `kal watch trades <TICKER>` - stream real-time trades
+
+### `kal config`
+
+- `kal config setup` - interactive config wizard
+- `kal config show` - show current config (masked)
+- `kal config path` - print config file path
+- `kal config reset` - delete config with confirmation
+
+### `kal shell`
+
+- `kal shell` - interactive REPL for running CLI commands
 
 ## Configuration
 
