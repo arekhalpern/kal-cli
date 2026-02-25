@@ -1,17 +1,13 @@
 use serde_json::Value;
 
 use super::{
-    OutputMode, fmt_cents, fmt_int, get_i64, get_str, left, print_rows, right, standard_table,
-    status_cell, truncate,
+    fmt_cents, fmt_int, get_i64, get_str, left, print_rows, right, standard_table, status_cell,
+    truncate, OutputMode,
 };
 
 const ORDER_ID_WIDTH: usize = 14;
 
-pub fn render_order_table(
-    mode: OutputMode,
-    rows: &[Value],
-    compact: bool,
-) -> anyhow::Result<()> {
+pub fn render_order_table(mode: OutputMode, rows: &[Value], compact: bool) -> anyhow::Result<()> {
     if mode == OutputMode::Json {
         return print_rows(mode, rows, &[]);
     }

@@ -1,4 +1,4 @@
-use comfy_table::{Attribute, Cell, CellAlignment, ContentArrangement, Table, presets::UTF8_FULL};
+use comfy_table::{presets::UTF8_FULL, Attribute, Cell, CellAlignment, ContentArrangement, Table};
 
 pub fn standard_table(headers: &[&str]) -> Table {
     let mut table = Table::new();

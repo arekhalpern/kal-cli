@@ -1,8 +1,8 @@
 use clap::Parser;
 use rustyline::DefaultEditor;
 
-use crate::{dispatch, Cli, Commands};
 use crate::output::OutputMode;
+use crate::{dispatch, Cli, Commands};
 
 pub async fn run(output_mode: OutputMode) -> anyhow::Result<()> {
     let mut rl = DefaultEditor::new()?;
@@ -34,10 +34,14 @@ pub async fn run(output_mode: OutputMode) -> anyhow::Result<()> {
                     }
                 };
 
-                let mut argv = vec!["kal".to_string(), "-o".to_string(), match output_mode {
-                    OutputMode::Table => "table".to_string(),
-                    OutputMode::Json => "json".to_string(),
-                }];
+                let mut argv = vec![
+                    "kal".to_string(),
+                    "-o".to_string(),
+                    match output_mode {
+                        OutputMode::Table => "table".to_string(),
+                        OutputMode::Json => "json".to_string(),
+                    },
+                ];
                 argv.extend(tokens);
 
                 match Cli::try_parse_from(argv) {

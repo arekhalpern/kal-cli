@@ -44,7 +44,9 @@ impl RuntimeConfig {
 }
 
 pub fn config_path() -> anyhow::Result<PathBuf> {
-    let base = dirs::config_dir().or_else(|| dirs::home_dir().map(|h| h.join(".config"))).unwrap_or_else(|| PathBuf::from("."));
+    let base = dirs::config_dir()
+        .or_else(|| dirs::home_dir().map(|h| h.join(".config")))
+        .unwrap_or_else(|| PathBuf::from("."));
     Ok(base.join("kalshi-cli").join("config.json"))
 }
 

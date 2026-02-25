@@ -3,7 +3,9 @@ use dialoguer::{Confirm, Input, Select};
 use serde_json::json;
 
 use crate::{
-    config::{config_path, delete_config, load_stored_config, save_config, Environment, StoredConfig},
+    config::{
+        config_path, delete_config, load_stored_config, save_config, Environment, StoredConfig,
+    },
     output::{print_value, OutputMode},
 };
 
@@ -54,7 +56,10 @@ fn setup(mode: OutputMode) -> anyhow::Result<()> {
     };
 
     save_config(&cfg)?;
-    print_value(mode, &json!({"ok": true, "path": config_path()?.display().to_string()}))
+    print_value(
+        mode,
+        &json!({"ok": true, "path": config_path()?.display().to_string()}),
+    )
 }
 
 fn show(mode: OutputMode) -> anyhow::Result<()> {

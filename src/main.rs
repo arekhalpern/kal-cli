@@ -6,9 +6,7 @@ mod output;
 mod query;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use commands::{
-    config_cmd, events, exchange, markets, order, portfolio, shell, trades, watch,
-};
+use commands::{config_cmd, events, exchange, markets, order, portfolio, shell, trades, watch};
 use config::{resolve_runtime_config, Environment, RuntimeConfig};
 use output::OutputMode;
 
@@ -20,7 +18,13 @@ enum OutputFormat {
 
 #[derive(Debug, Clone, Args)]
 struct GlobalOpts {
-    #[arg(short = 'o', long = "output", value_enum, default_value = "table", global = true)]
+    #[arg(
+        short = 'o',
+        long = "output",
+        value_enum,
+        default_value = "table",
+        global = true
+    )]
     output: OutputFormat,
 
     #[arg(short = 'e', long = "env", value_enum, global = true)]

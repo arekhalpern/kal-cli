@@ -91,7 +91,15 @@ pub async fn run(ctx: &AppContext, cmd: PortfolioCmd) -> anyhow::Result<()> {
             print_rows(
                 ctx.output_mode,
                 &rows,
-                &["trade_id", "ticker", "side", "action", "count", "yes_price", "created_time"],
+                &[
+                    "trade_id",
+                    "ticker",
+                    "side",
+                    "action",
+                    "count",
+                    "yes_price",
+                    "created_time",
+                ],
             )
         }
         PortfolioSubcmd::Settlements { ticker, days } => {
@@ -106,13 +114,23 @@ pub async fn run(ctx: &AppContext, cmd: PortfolioCmd) -> anyhow::Result<()> {
             print_rows(
                 ctx.output_mode,
                 &rows,
-                &["ticker", "market_result", "realized_pnl", "yes_count", "no_count", "settlement_ts"],
+                &[
+                    "ticker",
+                    "market_result",
+                    "realized_pnl",
+                    "yes_count",
+                    "no_count",
+                    "settlement_ts",
+                ],
             )
         }
     }
 }
 
 fn ts_days_ago(days: u64) -> i64 {
-    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64;
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
     now - (days as i64 * 86_400)
 }

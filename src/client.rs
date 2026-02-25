@@ -102,8 +102,10 @@ impl KalshiClient {
                 return Ok(response.json::<Value>().await?);
             }
 
-            if matches!(response.status(), StatusCode::TOO_MANY_REQUESTS | StatusCode::SERVICE_UNAVAILABLE)
-                && attempt < MAX_RETRIES
+            if matches!(
+                response.status(),
+                StatusCode::TOO_MANY_REQUESTS | StatusCode::SERVICE_UNAVAILABLE
+            ) && attempt < MAX_RETRIES
             {
                 attempt += 1;
                 let retry_after_ms = response
@@ -125,7 +127,10 @@ impl KalshiClient {
             }
 
             let status = response.status();
-            let text = response.text().await.unwrap_or_else(|_| String::from("<empty>"));
+            let text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| String::from("<empty>"));
             anyhow::bail!("kalshi api error {}: {}", status, text);
         }
     }

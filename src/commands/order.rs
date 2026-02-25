@@ -195,13 +195,20 @@ pub async fn run(ctx: &AppContext, cmd: OrderCmd) -> anyhow::Result<()> {
                 .and_then(|v| v.as_array())
                 .map(|arr| {
                     arr.iter()
-                        .filter_map(|o| o.get("order_id").and_then(|v| v.as_str()).map(str::to_string))
+                        .filter_map(|o| {
+                            o.get("order_id")
+                                .and_then(|v| v.as_str())
+                                .map(str::to_string)
+                        })
                         .collect()
                 })
                 .unwrap_or_default();
 
             if ids.is_empty() {
-                print_value(ctx.output_mode, &json!({"canceled": 0, "message": "No resting orders"}))
+                print_value(
+                    ctx.output_mode,
+                    &json!({"canceled": 0, "message": "No resting orders"}),
+                )
             } else {
                 let data = client
                     .delete_auth("/portfolio/orders/batched", Some(json!({"ids": ids})))

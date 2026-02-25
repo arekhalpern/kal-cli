@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use super::{OutputMode, get_str, left, print_rows, standard_table, status_cell, truncate};
+use super::{get_str, left, print_rows, standard_table, status_cell, truncate, OutputMode};
 
 pub fn render_events_table(
     mode: OutputMode,

@@ -19,7 +19,12 @@ pub fn parse_private_key(key: &str) -> String {
     out
 }
 
-pub fn sign_request(private_key_pem: &str, timestamp: i64, method: &str, path: &str) -> anyhow::Result<String> {
+pub fn sign_request(
+    private_key_pem: &str,
+    timestamp: i64,
+    method: &str,
+    path: &str,
+) -> anyhow::Result<String> {
     let path_no_query = path.split('?').next().unwrap_or(path);
     let message = format!("{}{}{}", timestamp, method.to_uppercase(), path_no_query);
 

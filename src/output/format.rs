@@ -20,11 +20,15 @@ pub fn fmt_cents(value: Option<i64>) -> String {
 pub fn status_cell(status: &str) -> Cell {
     let normalized = status.to_ascii_lowercase();
     match normalized.as_str() {
-        "active" | "open" | "resting" | "executed" => {
-            Cell::new(status).fg(Color::Green).add_attribute(Attribute::Bold)
-        }
-        "closed" | "canceled" => Cell::new(status).fg(Color::Yellow).add_attribute(Attribute::Bold),
-        "settled" => Cell::new(status).fg(Color::DarkGrey).add_attribute(Attribute::Bold),
+        "active" | "open" | "resting" | "executed" => Cell::new(status)
+            .fg(Color::Green)
+            .add_attribute(Attribute::Bold),
+        "closed" | "canceled" => Cell::new(status)
+            .fg(Color::Yellow)
+            .add_attribute(Attribute::Bold),
+        "settled" => Cell::new(status)
+            .fg(Color::DarkGrey)
+            .add_attribute(Attribute::Bold),
         _ => Cell::new(status).fg(Color::Cyan),
     }
 }
@@ -54,7 +58,10 @@ pub fn get_str<'a>(row: &'a Value, key: &str) -> &'a str {
 }
 
 pub fn extract_array(data: &Value, key: &str) -> Vec<Value> {
-    data.get(key).and_then(Value::as_array).cloned().unwrap_or_default()
+    data.get(key)
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default()
 }
 
 fn with_grouping(value: i64) -> String {

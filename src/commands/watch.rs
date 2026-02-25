@@ -29,8 +29,16 @@ enum WatchSubcmd {
 pub async fn run(ctx: &AppContext, cmd: WatchCmd) -> anyhow::Result<()> {
     ensure_auth(&ctx.runtime)?;
 
-    let api_key = ctx.runtime.api_key.clone().ok_or_else(|| anyhow::anyhow!("missing api key"))?;
-    let api_secret = ctx.runtime.api_secret.clone().ok_or_else(|| anyhow::anyhow!("missing api secret"))?;
+    let api_key = ctx
+        .runtime
+        .api_key
+        .clone()
+        .ok_or_else(|| anyhow::anyhow!("missing api key"))?;
+    let api_secret = ctx
+        .runtime
+        .api_secret
+        .clone()
+        .ok_or_else(|| anyhow::anyhow!("missing api secret"))?;
     let ws_url = ctx.runtime.ws_url().to_string();
 
     let headers = auth::get_auth_headers(
@@ -52,7 +60,11 @@ pub async fn run(ctx: &AppContext, cmd: WatchCmd) -> anyhow::Result<()> {
     let subscribe_msg = match cmd.command {
         WatchSubcmd::Ticker { ticker, tickers } => {
             let list = tickers
-                .map(|v| v.split(',').map(|s| s.trim().to_string()).collect::<Vec<_>>())
+                .map(|v| {
+                    v.split(',')
+                        .map(|s| s.trim().to_string())
+                        .collect::<Vec<_>>()
+                })
                 .unwrap_or_else(|| vec![ticker]);
             json!({"id": 1, "cmd": "subscribe", "params": {"channels": ["ticker"], "market_tickers": list}})
         }

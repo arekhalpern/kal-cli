@@ -1,5 +1,5 @@
-use std::fmt;
 use std::collections::BTreeMap;
+use std::fmt;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use clap::{ArgAction, Args, Subcommand, ValueEnum};
@@ -7,7 +7,10 @@ use serde_json::{Map, Value};
 
 use crate::{
     client::KalshiClient,
-    output::{extract_array, get_i64, print_value, render_events_table, render_events_top_table, OutputMode},
+    output::{
+        extract_array, get_i64, print_value, render_events_table, render_events_top_table,
+        OutputMode,
+    },
     query::QueryParams,
     AppContext,
 };
@@ -92,13 +95,14 @@ pub async fn run(ctx: &AppContext, cmd: EventsCmd) -> anyhow::Result<()> {
             let events = extract_array(&data, "events");
             render_events_table(ctx.output_mode, &events, status_text.as_deref())
         }
-        EventsSubcmd::Get { ticker, with_markets } => {
+        EventsSubcmd::Get {
+            ticker,
+            with_markets,
+        } => {
             let q = QueryParams::new()
                 .optional("with_nested_markets", with_markets.then_some("true"))
                 .build();
-            let data = client
-                .get_public(&format!("/events/{ticker}"), q)
-                .await?;
+            let data = client.get_public(&format!("/events/{ticker}"), q).await?;
             print_value(ctx.output_mode, &data)
         }
         EventsSubcmd::Top {
@@ -234,8 +238,7 @@ fn sort_top_events(rows: &mut [Value]) {
         let a_cnt = get_i64(a, "market_count").unwrap_or(0);
         let b_cnt = get_i64(b, "market_count").unwrap_or(0);
 
-        b_oi
-            .cmp(&a_oi)
+        b_oi.cmp(&a_oi)
             .then_with(|| b_vol.cmp(&a_vol))
             .then_with(|| b_cnt.cmp(&a_cnt))
     });

@@ -1,8 +1,8 @@
 use serde_json::Value;
 
 use super::{
-    OutputMode, fmt_int, get_i64, get_str, left, pnl_cell, print_rows, right, standard_table,
-    status_cell, truncate,
+    fmt_int, get_i64, get_str, left, pnl_cell, print_rows, right, standard_table, status_cell,
+    truncate, OutputMode,
 };
 
 pub fn render_positions_table(

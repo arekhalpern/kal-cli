@@ -5,8 +5,8 @@ mod orders;
 mod portfolio;
 mod table;
 
-pub use format::{extract_array, fmt_cents, fmt_int, get_i64, get_str, pnl_cell, status_cell};
 pub use events::{render_events_table, render_events_top_table};
+pub use format::{extract_array, fmt_cents, fmt_int, get_i64, get_str, pnl_cell, status_cell};
 pub use markets::{render_markets_table, render_markets_top_table};
 pub use orders::render_order_table;
 pub use portfolio::render_positions_table;
@@ -69,7 +69,10 @@ pub fn print_rows(mode: OutputMode, rows: &[Value], columns: &[&str]) -> anyhow:
 }
 
 pub fn print_ndjson(value: &Value) {
-    println!("{}", serde_json::to_string(value).unwrap_or_else(|_| "{}".to_string()));
+    println!(
+        "{}",
+        serde_json::to_string(value).unwrap_or_else(|_| "{}".to_string())
+    );
 }
 
 fn read_column(value: &Value, key: &str) -> String {
