@@ -1,0 +1,31 @@
+[package]
+name = "kalshi-cli"
+version = "0.1.0"
+edition = "2021"
+description = "CLI for Kalshi prediction market API"
+license = "MIT"
+
+[[bin]]
+name = "kal"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0"
+
+base64 = "0.22"
+clap = { version = "4.5", features = ["derive"] }
+comfy-table = "7.1"
+dialoguer = "0.11"
+dirs = "5.0"
+futures-util = "0.3"
+openssl = { version = "0.10", features = ["vendored"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+rustyline = "14"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+shell-words = "1.1"
+thiserror = "2.0"
+tokio = { version = "1.43", features = ["macros", "rt-multi-thread", "signal", "time"] }
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
+url = "2.5"
+urlencoding = "2.1"
